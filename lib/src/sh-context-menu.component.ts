@@ -1,6 +1,8 @@
-import {Component, Input, Output, EventEmitter, OnInit, ElementRef, ViewChild, AfterContentInit} from "@angular/core";
-import {IShContextMenuItem, IShContextOptions} from "./sh-context-menu.models";
+import {Component, Input, Output, EventEmitter, OnInit, ElementRef, ViewChild, AfterContentInit} from '@angular/core';
+import {IShContextMenuItem, IShContextOptions} from './sh-context-menu.models';
 import {ShContextService} from './sh-context-service';
+import {ShMenuPositioner} from './menu-positioner/sh-menu-positioner';
+import { AfterViewInit } from '@angular/core/src/metadata/lifecycle_hooks';
 
 export interface ShContextPosition {
   top: number;
@@ -112,9 +114,12 @@ export interface ShContextPosition {
       border-bottom: 6px solid transparent;
       border-right: 8px solid black;
     }
-  `]
+  `],
+  providers: [
+    ShMenuPositioner
+  ]
 })
-export class ShContextMenuComponent implements OnInit, AfterContentInit {
+export class ShContextMenuComponent implements OnInit, AfterContentInit, AfterViewInit {
   @Input() position: ShContextPosition;
   @Input() items: IShContextMenuItem[];
   @Input() dataContext: any;
@@ -124,16 +129,21 @@ export class ShContextMenuComponent implements OnInit, AfterContentInit {
 
   @ViewChild('childRef') childRef: ElementRef;
 
-  constructor(private ctxService: ShContextService) {
+  constructor(private ctxService: ShContextService, private menuPositioner: ShMenuPositioner) {
   }
 
   ngOnInit(): void {
     this.options = this.ctxService.getOptions();
   }
 
+  ngAfterViewInit(): void {
+    this.catchPosition();
+  }
+
   ngAfterContentInit(): void {
-    if (this.options.rtl)
+    if (this.options.rtl) {
       this.setRtlLocation();
+    }
   }
 
   getLabel(item: IShContextMenuItem): string {
@@ -150,8 +160,9 @@ export class ShContextMenuComponent implements OnInit, AfterContentInit {
   }
 
   onClick(item: IShContextMenuItem) {
-    if (this.isItemDisabled(item))
+    if (this.isItemDisabled(item)) {
       return;
+    }
 
     if (item.onClick) {
       this.close();
@@ -173,16 +184,22 @@ export class ShContextMenuComponent implements OnInit, AfterContentInit {
     }, 0);
   }
 
+  private catchPosition() {
+    this.menuPositioner.correctPosition( this, this.childRef );
+  }
+
   isItemDisabled(item: IShContextMenuItem) {
-    if (!item.disabled)
+    if (!item.disabled) {
       return false;
+    }
 
     return item.disabled(this.dataContext);
   }
 
   isItemVisible(item: IShContextMenuItem) {
-    if (!item.visible)
+    if (!item.visible) {
       return true;
+    }
 
     return item.visible(this.dataContext);
   }
